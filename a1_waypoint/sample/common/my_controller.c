@@ -3,15 +3,21 @@ int step_no = 0;
 int prev_step = 0;
 double theta_ref0 = 0;
 
-double Kp_ik = 2.5;
+double Kp_ik = 2; //original = 2.5
 
 int flag_constant = 0; //1 for constant yaw and 0 for varying yaw
 
+int cbf_on = 1;
+
+// New arguments
+extern int g_traj_type;
+extern double a;
+
 double px = 0.0;
 double py = 0;
-#define t_curve 60
+#define t_curve 40
 double tend = t_curve;
-double a = 2;
+// double a = 3;
 
 #include <sys/time.h>
 
@@ -28,8 +34,20 @@ double a = 2;
 #include "leg_state_machine.c"
 #include "get_stance_forces.c"
 #include "get_trajectory.c"
+// #include "cbf_circle_obstacles.c"
+// #include "cbf_circle_obstacles_qp.c"
+#include "cbf_circle_obstacles_qp_lim.c"
 
 
+// #include "cbf_pcbf_circles.c"
+// #include "cbf_pcbf_circles_v2.c"
+// #include "cbf_pcbf_circles_v3.c"
+// #include "cbf_pcbf_circles_v4.c"
+// #include "cbf_rpcbf_circles.c"
+// #include "cbf_rpcbf_circles_v2.c"
+
+// #include "cbf_pcbf_circles_v5.c"
+// #include "cbf_pcbf_circles_lse.c"
 
 // ************ Change this as per the problem being solved *********//
 #define DATA_PTS 3 //Set this based on columns in data file
@@ -198,6 +216,17 @@ void my_controller(int motiontime,double quat_act[4], double omega_act[3],
        vx =    a11*xdot_p + a12*ydot_p + a13*thetadot_p;
        vy =    a21*xdot_p + a22*ydot_p + a23*thetadot_p;
        omega = a31*xdot_p + a32*ydot_p + a33*thetadot_p;
+       
+       if (cbf_on == 1){
+          cbf_circle_obstacles_filter(x_c, y_c, theta,
+                                  &vx, &vy, &omega,
+                                  1.0, 1.0, 1.0);
+       }
+
+      //  cbf_circle_obstacles_filter(x_c, y_c, theta,
+      //                             &vx, &vy, &omega,
+      //                             1.0, 1.0, 1.0);
+        
 
         //printf("%f %f %f \n",x_ref - x_p, y_ref - y_p, theta_ref-theta);
         fprintf(fidC,"%d %f %f %f\n",step_no, vx, vy, omega);

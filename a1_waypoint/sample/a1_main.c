@@ -16,6 +16,10 @@
 #include "stdlib.h"
 #include "string.h"
 
+// Global variables
+int g_traj_type = 1;
+double a = 3.0;
+
 //for save_data
 FILE *fid2;
 char path2[] = "../sample/data.csv";
@@ -630,11 +634,15 @@ int main(int argc, const char** argv)
 {
 
     // check command-line arguments
-    if( argc!=2 )
+    if( argc < 2 )
     {
         printf(" USAGE:  basic modelfile\n");
         return 0;
     }
+
+    // New arguments
+    if (argc > 2) g_traj_type   = atoi(argv[2]);
+    if (argc > 3) a = atof(argv[3]);
 
     // activate software
     // mj_activate("../../../mjkey.txt");
@@ -658,8 +666,8 @@ int main(int argc, const char** argv)
         mju_error("Could not initialize GLFW");
 
     // create window, make OpenGL context current, request v-sync
-    //GLFWwindow* window = glfwCreateWindow(1200, 900, "Demo", NULL, NULL);//1200,900
-     GLFWwindow* window = glfwCreateWindow(900, 600, "A1 demo", NULL, NULL);//1200,900
+    GLFWwindow* window = glfwCreateWindow(1200, 900, "Demo", NULL, NULL);//1200,900
+    //  GLFWwindow* window = glfwCreateWindow(900, 600, "A1 demo", NULL, NULL);//1200,900
     //GLFWwindow* window = glfwCreateWindow(450, 300, "A1 demo", NULL, NULL);//1200,900
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
@@ -686,8 +694,8 @@ int main(int argc, const char** argv)
 
 
     //set camera distance
-    double arr_view[] = {-89.431857, -69.955732, 4.770732, -2.000000, 0.000000, 0.000000}; //-2.844089
-
+    double arr_view[] = {-135.0, -30.0, 3.0, -2.000000, 0.000000, 0.000000}; //-2.844089
+    // original: double arr_view[] = {-89.431857, -69.955732, 4.770732, -2.000000, 0.000000, 0.000000}; //-2.844089
     cam.azimuth = arr_view[0];
     cam.elevation = arr_view[1];
     cam.distance = arr_view[2];
@@ -749,6 +757,10 @@ int main(int argc, const char** argv)
         // get framebuffer viewport
         mjrRect viewport = {0, 0, 0, 0};
         glfwGetFramebufferSize(window, &viewport.width, &viewport.height);
+        
+        cam.lookat[0] = d->xpos[3*1+0];   // robot x
+        cam.lookat[1] = d->xpos[3*1+1];   // robot y
+        cam.lookat[2] = d->xpos[3*1+2];   // robot z
 
         //cam.lookat[0] = -5; //d->xpos[3*1+0];
         //cam.lookat[1] = 0; //d->xpos[3*1+1];

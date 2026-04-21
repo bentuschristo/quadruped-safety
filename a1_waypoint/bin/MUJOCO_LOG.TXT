@@ -1,0 +1,4 @@
+Wed Mar 18 13:40:47 2026
+ERROR: Load model error: Error: repeated name in geom array, position 3
+Object name = obs1, id = 3, line = 66, column = 5
+
