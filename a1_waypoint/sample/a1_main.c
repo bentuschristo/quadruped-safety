@@ -18,7 +18,7 @@
 
 // Global variables
 int g_traj_type = 1;
-double a = 3.0;
+extern double a;
 
 //for save_data
 FILE *fid2;

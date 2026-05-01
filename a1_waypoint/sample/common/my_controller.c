@@ -9,15 +9,11 @@ int flag_constant = 0; //1 for constant yaw and 0 for varying yaw
 
 int cbf_on = 1;
 
-// New arguments
-extern int g_traj_type;
-extern double a;
-
 double px = 0.0;
 double py = 0;
 #define t_curve 40
 double tend = t_curve;
-// double a = 3;
+double a = 3;
 
 #include <sys/time.h>
 
@@ -36,18 +32,17 @@ double tend = t_curve;
 #include "get_trajectory.c"
 // #include "cbf_circle_obstacles.c"
 // #include "cbf_circle_obstacles_qp.c"
-#include "cbf_circle_obstacles_qp_lim.c"
+// #include "cbf_circle_obstacles_qp_lim.c"
 
+// Y-axis backup CBF
+// #include "bcbf_circle_obstacles.c"
+// #include "blended_circle_obstacles.c"
+// #include "oi_circle_obstacles.c"
 
-// #include "cbf_pcbf_circles.c"
-// #include "cbf_pcbf_circles_v2.c"
-// #include "cbf_pcbf_circles_v3.c"
-// #include "cbf_pcbf_circles_v4.c"
-// #include "cbf_rpcbf_circles.c"
-// #include "cbf_rpcbf_circles_v2.c"
-
-// #include "cbf_pcbf_circles_v5.c"
-// #include "cbf_pcbf_circles_lse.c"
+// Zero-action backup CBF
+// #include "bcbf_circle_obstacles_v2.c"
+// #include "blended_circle_obstacles_v2.c"
+#include "oi_circle_obstacles_v2.c"
 
 // ************ Change this as per the problem being solved *********//
 #define DATA_PTS 3 //Set this based on columns in data file
@@ -229,7 +224,20 @@ void my_controller(int motiontime,double quat_act[4], double omega_act[3],
         
 
         //printf("%f %f %f \n",x_ref - x_p, y_ref - y_p, theta_ref-theta);
-        fprintf(fidC,"%d %f %f %f\n",step_no, vx, vy, omega);
+        // Existing command log, expanded with nominal, backup, and filtered commands.
+        // Columns:
+        // step,
+        // filtered vx vy omega,
+        // nominal  vx vy omega,
+        // backup   vx vy omega,
+        // mu, status
+        fprintf(fidC,
+                "%d %f %f %f %f %f %f %f %f %f %f %d\n",
+                step_no,
+                vx, vy, omega,
+                cbf_log_u_nom[0], cbf_log_u_nom[1], cbf_log_u_nom[2],
+                cbf_log_u_backup[0], cbf_log_u_backup[1], cbf_log_u_backup[2],
+                cbf_log_mu, cbf_log_status);
         fprintf(fidmat,"%d %f %f %f %f %f %f %f %f %f %f %f %f; \n",
         step_no, x_ref, y_ref, theta_ref,
                            x_p, y_p,theta_ref - error_theta,
