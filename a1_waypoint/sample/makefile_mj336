@@ -1,0 +1,38 @@
+MUJOCO = $(HOME)/.mujoco/mujoco-3.3.6
+
+COMMON = -O2 -mavx -pthread \
+         -I$(MUJOCO)/include \
+	 -L$(MUJOCO)/lib \
+	 -Wl,-rpath,$(MUJOCO)/lib \
+         -I/usr/local/include/osqp
+
+LDFLAGS = -lgsl -lgslcblas -lm -lnlopt -lglfw -lGLEW -lGL -ldl -losqp
+CFLAGS  = -c -Wno-implicit-function-declaration
+CC      = gcc
+
+
+ROOT = a1_waypoint_mj336
+MODEL = model
+
+all: a1_all
+
+a1_all: a1_main.o a1_s.o a1_d.o sdlib.o a1_sduforce.o
+	gcc $(COMMON) a1_main.o a1_s.o a1_d.o sdlib.o a1_sduforce.o -w -lmujoco $(LDFLAGS) -o ../bin/$(ROOT)
+
+a1_main.o: a1_main.c common/params.h common/my_controller.c
+	$(CC) $(COMMON) $(CFLAGS) a1_main.c
+
+a1_d.o: $(MODEL)/a1_d.c 
+	$(CC) $(CFLAGS) $(MODEL)/a1_d.c
+
+a1_s.o: $(MODEL)/a1_s.c
+	$(CC) $(CFLAGS) $(MODEL)/a1_s.c
+
+a1_sduforce.o: $(MODEL)/a1_sduforce.c
+	$(CC) $(CFLAGS) $(MODEL)/a1_sduforce.c
+
+sdlib.o: $(MODEL)/sdlib.c
+	$(CC) $(CFLAGS) $(MODEL)/sdlib.c 
+
+clean:
+	rm a1_main.o #rm *.o

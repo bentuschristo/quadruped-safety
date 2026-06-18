@@ -10,8 +10,8 @@
 //#include <iostream>
 #include <stdbool.h>
 
-#include "mujoco.h"
-#include "glfw3.h"
+#include <mujoco/mujoco.h>
+#include <GLFW/glfw3.h>
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
@@ -652,7 +652,7 @@ int main(int argc, const char** argv)
 
     // activate software
     // mj_activate("../../../mjkey.txt");
-    mj_activate("mjkey.txt");
+    // mj_activate("mjkey.txt");
 
     // load and compile model
     char error[1000] = "Could not load binary model";
@@ -798,7 +798,7 @@ int main(int argc, const char** argv)
     // free MuJoCo model and data, deactivate
     mj_deleteData(d);
     mj_deleteModel(m);
-    mj_deactivate();
+    // mj_deactivate();
 
     //sd_end();
 

@@ -1,0 +1,5 @@
+FOLDER=a1_waypoint_mj336
+reset
+#make -f makefile clean -C ../sample
+make -f makefile_mj336 -C ../sample
+./$FOLDER ../model/a1.xml "$@"
