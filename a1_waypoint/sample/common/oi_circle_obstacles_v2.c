@@ -5,6 +5,7 @@
 #endif
 
 #include <stdio.h>
+#include <time.h>
 #include <string.h>
 
 
@@ -15,6 +16,7 @@ static double cbf_log_u_safe[3]   = {0.0, 0.0, 0.0};
 
 static double cbf_log_mu     = -1.0;  // -1 for bCBF, actual mu for blending/OI
 static int    cbf_log_status = 0;     // 1 = success/active, 0 = fallback/inactive/failure
+static double cbf_log_qp_time_sec = 0.0;
 
 
 // =============================================================================
@@ -42,9 +44,7 @@ static OIObstacle oi_obs[OI_N_OBS] = {
     { -2.0,  1.0, 0.42, 1.0, 1 },
     { -4.0, -1.0, 0.42, 1.0, 1 },
     { -2.0, -1.0, 0.42, 1.0, 1 },
-    { -4.0,  1.0, 0.42, 1.0, 1 },
-    { -2.8,  0.0, 0.30, 1.0, 1 },
-    { -3.3,  0.0, 0.30, 1.0, 1 }
+    { -4.0,  1.0, 0.42, 1.0, 1 }
 };
 
 static double oi_u_max[3] = {  1.0,  0.3,  1.0 };
@@ -57,6 +57,13 @@ static const double oi_kappa_lse_B = 10.0;  // larger -> closer to hard min over
 #define OI_N_SAMPLES 20
 static const double oi_T_backup = 4.0;
 #define OI_N_CONS (OI_N_OBS * OI_N_SAMPLES + 1)
+
+static inline double cbf_now_sec(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec + 1.0e-9 * (double)ts.tv_nsec;
+}
 
 static inline double oi_clip(double v, double lo, double hi)
 {
@@ -294,6 +301,7 @@ static inline int cbf_circle_obstacles_filter(
     oi_build_scalar_constraints(x, y, theta, u_nom, u_b, a_mu, b_mu);
 
     // Solve min 0.5*mu^2 subject to a_i + b_i*mu >= 0 and 0 <= mu <= 1.
+    double qp_t0 = cbf_now_sec();
     double mu_low = 0.0;
     double mu_high = 1.0;
     const double eps = 1e-9;
@@ -321,6 +329,8 @@ static inline int cbf_circle_obstacles_filter(
         // Objective is minimized by the smallest feasible nonnegative mu.
         mu = oi_clip(mu_low, 0.0, 1.0);
     }
+
+    cbf_log_qp_time_sec = cbf_now_sec() - qp_t0;
 
     double u[3];
     for (int j = 0; j < 3; j++) {

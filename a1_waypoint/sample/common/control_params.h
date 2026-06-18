@@ -4,9 +4,10 @@ double vx = 0.05;
 double vy = 0;
 double omega = 0;
 
-double vx_max = 1;
+// Original: vx_max = 1, vy_max = 0.3, omega_max = 1
+double vx_max = 1.0; 
 double vy_max = 0.3;
-double omega_max = 1; //(2*w_max/body_length)*(1/t_stance)
+double omega_max = 1.0; //(2*w_max/body_length)*(1/t_stance)
 
 double h0 = 0.3; //should be same as init_h0
 double hmax = 0.3;

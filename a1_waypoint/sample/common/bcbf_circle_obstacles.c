@@ -1,6 +1,7 @@
 #pragma once
 #include <math.h>
 #include <stdio.h>
+#include <time.h>
 #include <string.h>
 #include "osqp.h"
 
@@ -14,6 +15,7 @@ static double cbf_log_u_safe[3]   = {0.0, 0.0, 0.0};
 
 static double cbf_log_mu     = -1.0;  // -1 for bCBF, actual mu for blending/OI
 static int    cbf_log_status = 0;     // 1 = success/active, 0 = fallback/inactive/failure
+static double cbf_log_qp_time_sec = 0.0;
 
 // =============================================================================
 // Original Backup-CBF filter for the high-level quadruped model
@@ -52,20 +54,11 @@ typedef struct {
 // scenario where scalar interpolation methods can fail.
 #define BCBF_N_OBS 4
 static BCBFObstacle bcbf_obs[BCBF_N_OBS] = {
-    { -2.0,  1.0, 0.45, 1.0, 1 },
-    { -4.0, -1.0, 0.45, 1.0, 1 },
-    { -2.0, -1.0, 0.45, 1.0, 1 },
-    { -4.0,  1.0, 0.45, 1.0, 1 }
+    { -2.0,  1.0, 0.45, 0.5, 1 },
+    { -4.0, -1.0, 0.45, 0.5, 1 },
+    { -2.0, -1.0, 0.45, 0.5, 1 },
+    { -4.0,  1.0, 0.45, 0.5, 1 }
 };
-
-// static BCBFObstacle bcbf_obs[BCBF_N_OBS] = {
-//     { -2.0,  1.0, 0.42, 1.0, 1 },
-//     { -4.0, -1.0, 0.42, 1.0, 1 },
-//     { -2.0, -1.0, 0.42, 1.0, 1 },
-//     { -4.0,  1.0, 0.42, 1.0, 1 },
-//     { -2.8,  0.0, 0.30, 1.0, 1 },
-//     { -3.3,  0.0, 0.30, 1.0, 1 }
-// };
 
 // Input limits. Keep these consistent with the rest of the high-level controller.
 static double bcbf_u_max[3] = {  1.0,  0.3,  1.0 };
@@ -95,6 +88,13 @@ static const double bcbf_T_backup = 4.0;
 #define BCBF_N_ROWS     (BCBF_N_CBF_ROWS + 3)
 
 // ---------------------------- Utility functions ------------------------------
+static inline double cbf_now_sec(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec + 1.0e-9 * (double)ts.tv_nsec;
+}
+
 static inline double bcbf_clip(double v, double lo, double hi)
 {
     return fmax(lo, fmin(hi, v));
@@ -394,7 +394,9 @@ static inline int cbf_circle_obstacles_filter(
 
     osqp_update_data_vec(bcbf_solver, bcbf_q, bcbf_l, bcbf_u);
     osqp_update_data_mat(bcbf_solver, NULL, NULL, 0, bcbf_A_x, NULL, bcbf_A_mat.nzmax);
+    double qp_t0 = cbf_now_sec();
     osqp_solve(bcbf_solver);
+    cbf_log_qp_time_sec = cbf_now_sec() - qp_t0;
 
     int status_val = bcbf_solver->info->status_val;
 
@@ -436,16 +438,6 @@ static inline int cbf_circle_obstacles_filter(
         *vx_cmd = bcbf_clip(ub[0], bcbf_u_min[0], bcbf_u_max[0]);
         *vy_cmd = bcbf_clip(ub[1], bcbf_u_min[1], bcbf_u_max[1]);
         *wz_cmd = bcbf_clip(ub[2], bcbf_u_min[2], bcbf_u_max[2]);
-
-        // Log the fallback command as the safe/applied command.
-        cbf_log_u_safe[0] = *vx_cmd;
-        cbf_log_u_safe[1] = *vy_cmd;
-        cbf_log_u_safe[2] = *wz_cmd;
-        cbf_log_status = 0;
-        cbf_log_mu = -1.0;
-
-        // The command was still modified, even though the QP failed.
-        modified = 1;
     }
 
     return modified;

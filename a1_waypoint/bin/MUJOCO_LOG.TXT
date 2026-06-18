@@ -2,3 +2,59 @@ Wed Mar 18 13:40:47 2026
 ERROR: Load model error: Error: repeated name in geom array, position 3
 Object name = obs1, id = 3, line = 66, column = 5
 
+Mon Jun 15 14:19:30 2026
+ERROR: Load model error: XML Error: Schema violation: unrecognized element
+
+Element 'asset', line 84, column 5
+
+
+Mon Jun 15 14:20:34 2026
+ERROR: Load model error: XML Error: Schema violation: unrecognized element
+
+Element 'asset', line 84, column 5
+
+
+Mon Jun 15 14:25:53 2026
+ERROR: Load model error: Error: Unknown mesh file type: tree.obj
+Object name = tree_mesh, id = 5, line = 30, column = 9
+
+Mon Jun 15 14:26:22 2026
+ERROR: Load model error: Error: Unknown mesh file type: tree.obj
+Object name = tree_mesh, id = 5, line = 30, column = 9
+
+Mon Jun 15 14:36:50 2026
+ERROR: Load model error: XML parse error at line 169, column 5:
+Error reading end tag.
+
+
+Mon Jun 15 14:37:01 2026
+ERROR: Load model error: XML parse error at line 169, column 5:
+Error reading end tag.
+
+
+Mon Jun 15 14:37:09 2026
+ERROR: Load model error: XML parse error at line 169, column 5:
+Error reading end tag.
+
+
+Mon Jun 15 14:37:17 2026
+ERROR: Load model error: XML parse error at line 169, column 5:
+Error reading end tag.
+
+
+Mon Jun 15 14:37:24 2026
+ERROR: Load model error: XML parse error at line 169, column 5:
+Error reading end tag.
+
+
+Mon Jun 15 16:21:50 2026
+ERROR: Load model error: XML parse error at line 5, column 5:
+Error reading end tag.
+
+
+Thu Jun 18 10:36:45 2026
+WARNING: Unknown warning type Time = 12.0070.
+
+Thu Jun 18 10:38:46 2026
+WARNING: Unknown warning type Time = 6.4050.
+

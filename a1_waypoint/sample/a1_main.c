@@ -86,6 +86,7 @@ const int data_frequency = 10; //once every 2*data_frequency seconds (should be 
 mjModel* m = NULL;                  // MuJoCo model
 mjData* d = NULL;                   // MuJoCo data
 mjvCamera cam;                      // abstract camera
+int trunk_body_id = -1;             // robot base body for camera tracking
 mjvOption opt;                      // visualization options
 mjvScene scn;                       // abstract scene
 mjrContext con;                     // custom GPU context
@@ -169,6 +170,11 @@ void scroll(GLFWwindow* window, double xoffset, double yoffset)
 // initialize the different ids
 void get_ID()
 {
+  trunk_body_id = mj_name2id(m, mjOBJ_BODY, "trunk");
+  if (trunk_body_id < 0) {
+    fprintf(stderr, "ERROR: body \"trunk\" not found; camera tracking disabled.\n");
+  }
+
   const char* joint_name;
   const char* actuator_name;
   int i, jointid;
@@ -758,9 +764,11 @@ int main(int argc, const char** argv)
         mjrRect viewport = {0, 0, 0, 0};
         glfwGetFramebufferSize(window, &viewport.width, &viewport.height);
         
-        cam.lookat[0] = d->xpos[3*1+0];   // robot x
-        cam.lookat[1] = d->xpos[3*1+1];   // robot y
-        cam.lookat[2] = d->xpos[3*1+2];   // robot z
+        if (trunk_body_id >= 0) {
+            cam.lookat[0] = d->xpos[3*trunk_body_id + 0];
+            cam.lookat[1] = d->xpos[3*trunk_body_id + 1];
+            cam.lookat[2] = d->xpos[3*trunk_body_id + 2];
+        }
 
         //cam.lookat[0] = -5; //d->xpos[3*1+0];
         //cam.lookat[1] = 0; //d->xpos[3*1+1];

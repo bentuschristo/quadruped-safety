@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "osqp.h"
+#include <time.h>
 
 static int qp_success_count = 0;
 static int qp_fail_count = 0;
@@ -18,6 +19,8 @@ static double cbf_log_u_safe[3]   = {0.0, 0.0, 0.0};
 
 static double cbf_log_mu     = -1.0;  // -1 for bCBF, actual mu for blending/OI
 static int    cbf_log_status = 0;     // 1 = success/active, 0 = fallback/inactive/failure
+static double cbf_log_qp_time_sec = 0.0;
+static double cbf_log_filter_time_sec = 0.0;  // wall time for the whole safety-filter call
 
 // =============================================================================
 // Original Backup-CBF filter, v2 zero-action backup, for the high-level quadruped model
@@ -54,16 +57,21 @@ typedef struct {
     int active;
 } BCBFObstacle;
 
-// Original four obstacles plus two center obstacles to create a lateral-escape
-// scenario where scalar interpolation methods can fail.
-#define BCBF_N_OBS 6
+// #define BCBF_N_OBS 4
+// static BCBFObstacle bcbf_obs[BCBF_N_OBS] = {
+//     { -2.0,  1.1, 0.45, 1, 1 },
+//     { -4.0, -1.1, 0.45, 1, 1 },
+//     { -2.0, -1.1, 0.45, 1, 1 },
+//     { -4.0,  1.1, 0.45, 1, 1 }
+// };
+
+#define BCBF_N_OBS 5
 static BCBFObstacle bcbf_obs[BCBF_N_OBS] = {
-    { -2.0,  1.0, 0.42, 1.0, 1 },
-    { -4.0, -1.0, 0.42, 1.0, 1 },
-    { -2.0, -1.0, 0.42, 1.0, 1 },
-    { -4.0,  1.0, 0.42, 1.0, 1 },
-    { -2.8,  0.0, 0.30, 1.0, 1 },
-    { -3.3,  0.0, 0.30, 1.0, 1 }
+    {  0.5, 1.0, 0.40, 0.5, 1 },
+    { -0.5, 2.0, 0.40, 0.5, 1 },
+    {  0.0, 4.0, 0.40, 0.5, 1 },
+    {  0.4, 6.0, 0.40, 0.5, 1 },
+    { -1.0, 5.5, 0.40, 0.5, 1 }
 };
 
 // Input limits. Keep these consistent with the rest of the high-level controller.
@@ -73,7 +81,7 @@ static double bcbf_u_min[3] = { -1.0, -0.3, -1.0 };
 // Backup set, v2: enlarged-obstacle clearance set.
 // C_B = { h_{b,i}(x,y) >= 0 for all i }, where
 // h_{b,i} = ||p - p_i||^2 - (r_i + bcbf_backup_margin)^2.
-static const double bcbf_backup_margin = 0.15;
+static const double bcbf_backup_margin = 0.1;
 static const double bcbf_alpha_B = 0.8;
 static const double bcbf_kappa_lse_B = 10.0;  // larger -> closer to hard min over backup-set margins
 
@@ -85,6 +93,13 @@ static const double bcbf_T_backup = 4.0;
 // Total constraints = obstacle constraints at each backup sample + terminal hb + boxes
 #define BCBF_N_CBF_ROWS (BCBF_N_OBS * BCBF_N_SAMPLES + 1)
 #define BCBF_N_ROWS     (BCBF_N_CBF_ROWS + 3)
+
+static inline double cbf_now_sec(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec + 1.0e-9 * (double)ts.tv_nsec;
+}
 
 // ---------------------------- Utility functions ------------------------------
 static inline double bcbf_clip(double v, double lo, double hi)
@@ -384,6 +399,9 @@ static inline int cbf_circle_obstacles_filter(
     double *vx_cmd, double *vy_cmd, double *wz_cmd,
     double  wx,     double  wy,     double  ww)
 {
+    const double cbf_filter_t0 = cbf_now_sec();
+    cbf_log_filter_time_sec = 0.0;
+
     double u0[3] = {*vx_cmd, *vy_cmd, *wz_cmd};
     double A_cbf[BCBF_N_CBF_ROWS][3];
     double b_cbf[BCBF_N_CBF_ROWS];
@@ -407,7 +425,10 @@ static inline int cbf_circle_obstacles_filter(
     bcbf_build_constraints(x, y, theta, A_cbf, b_cbf);
 
     if (bcbf_solver == NULL) {
-        if (!bcbf_init_solver(wx, wy, ww)) return 0;
+        if (!bcbf_init_solver(wx, wy, ww)) {
+            cbf_log_filter_time_sec = cbf_now_sec() - cbf_filter_t0;
+            return 0;
+        }
     }
 
     bcbf_q[0] = (OSQPFloat)(-wx * u0[0]);
@@ -426,7 +447,11 @@ static inline int cbf_circle_obstacles_filter(
 
     osqp_update_data_vec(bcbf_solver, bcbf_q, bcbf_l, bcbf_u);
     osqp_update_data_mat(bcbf_solver, NULL, NULL, 0, bcbf_A_x, NULL, bcbf_A_mat.nzmax);
+    double qp_t0 = cbf_now_sec();
+
     osqp_solve(bcbf_solver);
+
+    cbf_log_qp_time_sec = cbf_now_sec() - qp_t0;
 
     int status_val = bcbf_solver->info->status_val;
 
@@ -477,5 +502,6 @@ static inline int cbf_circle_obstacles_filter(
         modified = 1;
     }
 
+    cbf_log_filter_time_sec = cbf_now_sec() - cbf_filter_t0;
     return modified;
 }

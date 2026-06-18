@@ -5,6 +5,7 @@
 #endif
 
 #include <stdio.h>
+#include <time.h>
 
 // Logging the control inputs
 static double cbf_log_u_nom[3]    = {0.0, 0.0, 0.0};
@@ -13,6 +14,15 @@ static double cbf_log_u_safe[3]   = {0.0, 0.0, 0.0};
 
 static double cbf_log_mu     = -1.0;  // -1 for bCBF, actual mu for blending/OI
 static int    cbf_log_status = 0;     // 1 = success/active, 0 = fallback/inactive/failure
+static double cbf_log_qp_time_sec = 0.0;
+static double cbf_log_filter_time_sec = 0.0;  // wall time for the whole safety-filter call
+
+static inline double cbf_now_sec(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec + 1.0e-9 * (double)ts.tv_nsec;
+}
 
 // =============================================================================
 // Hand-picked blending-function safety filter, v2 zero-action backup for the high-level quadruped model.
@@ -47,14 +57,21 @@ typedef struct {
     int active;
 } BLObstacle;
 
-#define BL_N_OBS 6
+// #define BL_N_OBS 4
+// static BLObstacle bl_obs[BL_N_OBS] = {
+//     { -2.0,  1.0, 0.42, 1.0, 1 },
+//     { -4.0, -1.0, 0.42, 1.0, 1 },
+//     { -2.0, -1.0, 0.42, 1.0, 1 },
+//     { -4.0,  1.0, 0.42, 1.0, 1 }
+// };
+
+#define BL_N_OBS 5
 static BLObstacle bl_obs[BL_N_OBS] = {
-    { -2.0,  1.0, 0.42, 1.0, 1 },
-    { -4.0, -1.0, 0.42, 1.0, 1 },
-    { -2.0, -1.0, 0.42, 1.0, 1 },
-    { -4.0,  1.0, 0.42, 1.0, 1 },
-    { -2.8,  0.0, 0.30, 1.0, 1 },
-    { -3.3,  0.0, 0.30, 1.0, 1 }
+    {  0.5, 1.0, 0.40, 0.5, 1 },
+    { -0.5, 2.0, 0.40, 0.5, 1 },
+    {  0.0, 4.0, 0.40, 0.5, 1 },
+    {  0.4, 6.0, 0.40, 0.5, 1 },
+    { -1.0, 5.5, 0.40, 0.5, 1 }
 };
 
 static double bl_u_max[3] = {  1.0,  0.3,  1.0 };
@@ -176,6 +193,9 @@ static inline int cbf_circle_obstacles_filter(
     double *vx_cmd, double *vy_cmd, double *wz_cmd,
     double  wx,     double  wy,     double  ww)
 {
+    const double cbf_filter_t0 = cbf_now_sec();
+    cbf_log_filter_time_sec = 0.0;
+
     (void)wx; (void)wy; (void)ww;
 
     double u_nom[3] = {*vx_cmd, *vy_cmd, *wz_cmd};
@@ -214,5 +234,6 @@ static inline int cbf_circle_obstacles_filter(
     cbf_log_mu = mu;
     cbf_log_status = 1;
 
+    cbf_log_filter_time_sec = cbf_now_sec() - cbf_filter_t0;
     return (mu > 1e-6);
 }

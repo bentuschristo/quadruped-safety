@@ -9,6 +9,7 @@ static double cbf_log_u_safe[3]   = {0.0, 0.0, 0.0};
 
 static double cbf_log_mu     = -1.0;  // -1 for bCBF, actual mu for blending/OI
 static int    cbf_log_status = 0;     // 1 = success/active, 0 = fallback/inactive/failure
+static double cbf_log_qp_time_sec = 0.0;
 
 // =============================================================================
 // Hand-picked blending-function safety filter for the high-level quadruped model.
@@ -42,22 +43,13 @@ typedef struct {
     int active;
 } BLObstacle;
 
-#define BL_N_OBS 4
+#define BL_N_OBS 6
 static BLObstacle bl_obs[BL_N_OBS] = {
-    { -2.0,  1.0, 0.45, 1.0, 1 },
-    { -4.0, -1.0, 0.45, 1.0, 1 },
-    { -2.0, -1.0, 0.45, 1.0, 1 },
-    { -4.0,  1.0, 0.45, 1.0, 1 }
+    { -2.0,  1.0, 0.42, 1.0, 1 },
+    { -4.0, -1.0, 0.42, 1.0, 1 },
+    { -2.0, -1.0, 0.42, 1.0, 1 },
+    { -4.0,  1.0, 0.42, 1.0, 1 }
 };
-
-// static BLObstacle bl_obs[BL_N_OBS] = {
-//     { -2.0,  1.0, 0.42, 1.0, 1 },
-//     { -4.0, -1.0, 0.42, 1.0, 1 },
-//     { -2.0, -1.0, 0.42, 1.0, 1 },
-//     { -4.0,  1.0, 0.42, 1.0, 1 },
-//     { -2.8,  0.0, 0.30, 1.0, 1 },
-//     { -3.3,  0.0, 0.30, 1.0, 1 }
-// };
 
 static double bl_u_max[3] = {  1.0,  0.3,  1.0 };
 static double bl_u_min[3] = { -1.0, -0.3, -1.0 };

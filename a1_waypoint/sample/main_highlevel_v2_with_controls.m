@@ -121,7 +121,8 @@ if exist(ctrl_file, 'file') == 2
 
         mu_ctrl = ctrl_data(:,11);
         status_ctrl = ctrl_data(:,12);
-
+        qp_time_sec = ctrl(:,13);
+        
         hh2 = figure(2);
         set(hh2, 'PaperUnits', 'inches');
         set(hh2, 'PaperPosition', PaperPosition);
